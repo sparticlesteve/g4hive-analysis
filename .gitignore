@@ -1,4 +1,3 @@
 .ipynb_checkpoints/
-results/
-results_*
+results*
 .DS_Store
