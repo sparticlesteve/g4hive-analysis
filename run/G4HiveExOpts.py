@@ -12,54 +12,13 @@ if (nThreads < 1) :
    msg.fatal('numThreads must be >0. Did you set the --threads=N option?')
    sys.exit(AthenaCommon.ExitCodes.CONFIGURATION_ERROR)
 
-#
-## Override Setup for Hive
-#
+# Message formatting
 msgFmt = "% F%38W%S%6W%e%s%7W%R%T %0W%M"
 svcMgr.MessageSvc.Format = msgFmt
-# svcMgr.MessageSvc.useColors = True
-
-# svcMgr.AthenaHiveEventLoopMgr.OutputLevel = DEBUG
-# svcMgr.ForwardSchedulerSvc.OutputLevel = DEBUG
-
-#
-## Override defaults. otherwise these are ALL EQUAL to the number of threads
-## set with the command line opt --threads=N
-#
-
-# numStores = 1
-# numAlgsInFlight = 1
-
-# svcMgr.EventDataSvc.NSlots = numStores
-# svcMgr.ForwardSchedulerSvc.MaxEventsInFlight = numStores
-# svcMgr.ForwardSchedulerSvc.MaxAlgosInFlight = numAlgsInFlight
-
-# Dirty way to toggle gPerfTools via command line
-if 'gperf' in dir() and gperf:
-    include('PerfMonGPerfTools/ProfileEventLoop_preInclude.py')
-    ServiceMgr.ProfilerService.ProfileFileName='g4hive.profile'
-    ServiceMgr.ProfilerService.InitEvent=0
-
-# Thread pool service and initialization
-from GaudiHive.GaudiHiveConf import ThreadPoolSvc
-svcMgr += ThreadPoolSvc("ThreadPoolSvc")
-svcMgr.ThreadPoolSvc.ThreadInitTools = ["G4InitTool"]
 
 # Algorithm resource pool
 from GaudiHive.GaudiHiveConf import AlgResourcePool
 svcMgr += AlgResourcePool( OutputLevel = INFO );
-
-
-#
-## Uncomment following to avoid long waits when segfaulting,
-## and add "Root.Stacktrace: no" to your .rootrc file
-#
-# import ROOT
-# ROOT.SetSignalPolicy( ROOT.kSignalFast )
-
-## Output threshold (DEBUG, INFO, WARNING, ERROR, FATAL)
-#ServiceMgr.MessageSvc.OutputLevel = INFO
-
 
 
 ######################################################################################
@@ -97,10 +56,7 @@ else: evtMax = -1
 nProc = jp.ConcurrencyFlags.NumProcs()
 if (nProc > 0) :
 
-   #
-   ## For MP/Hive we need to set the chunk size
-   #
-
+   # For MP/Hive we need to set the chunk size
    from AthenaCommon.Logging import log as msg
    if (evtMax == -1) :
       msg.fatal('EvtMax must be >0 for hybrid configuration')
@@ -112,10 +68,8 @@ if (nProc > 0) :
                   evtMax, nProc)
 
    chunkSize = int (evtMax / nProc)
-
    from AthenaMP.AthenaMPFlags import jobproperties as jps
    jps.AthenaMPFlags.ChunkSize = chunkSize
-
    msg.info('AthenaMP workers will process %s events each', chunkSize)
 
 athenaCommonFlags.PoolHitsOutput = "atlasG4.hits.pool.root"
@@ -157,16 +111,11 @@ simFlags.EventFilter.set_Off()
 ## No magnetic field
 simFlags.MagneticField.set_On()
 
-## Change the field stepper or use verbose G4 tracking
-#from G4AtlasApps import callbacks
-#simFlags.InitFunctions.add_function("postInit", callbacks.use_simplerunge_stepper)
-#simFlags.InitFunctions.add_function("preInitG4", callbacks.use_verbose_tracking)
-
 # Activate new user actions for multithreading
 simFlags.UseV2UserActions = True
 
-# Debug output
-#CfgGetter.getPublicTool('G4UA::AthenaTrackingActionTool').OutputLevel = DEBUG
+# G4InitTool handles worker thread G4 infrastructure setup
+svcMgr.ThreadPoolSvc.ThreadInitTools = ["G4InitTool"]
 
 # Setup the algorithm sequence
 from AthenaCommon.AlgSequence import AlgSequence
@@ -192,14 +141,13 @@ topSeq.SGInputLoader.Load = [('McEventCollection','GEN_EVENT')]
 from AthenaCommon.CfgGetter import getAlgorithm
 topSeq += getAlgorithm("BeamEffectsAlg", tryDefaultConfigurable=True)
 
-## Add the G4 simulation service
+# Add the G4 simulation service
 from G4AtlasApps.PyG4Atlas import PyG4AtlasSvc
 svcMgr += PyG4AtlasSvc()
 
-# TODO: make this declaration more automatic
+# Manually declared data dependencies (for now anyway)
 topSeq.G4AtlasAlg.ExtraInputs =  [('McEventCollection','BeamTruthEvent')]
 topSeq.G4AtlasAlg.ExtraOutputs = [('SiHitCollection','SCT_Hits')]
-
 topSeq.StreamHITS.ExtraInputs += topSeq.G4AtlasAlg.ExtraOutputs
 
 # Disable all of the LAr SDs because they are not yet thread-safe
@@ -213,15 +161,9 @@ for sd in larSDs: sdMaster.SensitiveDetectors.remove(sd)
 # Disable alg filtering - doesn't work in multi-threading
 topSeq.StreamHITS.AcceptAlgs = []
 
-# theAuditorSvc.Auditors = ["ChronoAuditor", "NameAuditor", "AlgContextAuditor"]
-
-#
-## set which Algorithms can be cloned
-#
-
-#  set algCardinality = 1 to disable cloning for all Algs
+# Configure algorithm cloning.
+# set algCardinality = 1 to disable cloning for all Algs.
 algCardinality = jp.ConcurrencyFlags.NumThreads()
-
 if (algCardinality != 1):
     for alg in topSeq:
         name = alg.name()
