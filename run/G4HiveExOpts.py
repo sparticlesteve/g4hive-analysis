@@ -125,6 +125,11 @@ svcMgr.ThreadPoolSvc.ThreadInitTools = ["G4InitTool"]
 from AthenaCommon.AlgSequence import AlgSequence
 topSeq = AlgSequence()
 
+# VTune instrumentation algorithm
+if 'vtune' in dir() and vtune:
+    from VTune_CCAPI.VTune_CCAPIConf import CCAPI_Alg
+    topSeq += CCAPI_Alg("VTune_CCAPI", OutputLevel=DEBUG, resumeAtBeginRun=True)
+
 # Currently, Hive requires an algorithm to load the initial data into the
 # whiteboard and kickstart the data dependency chain. This alg must be at the
 # front of the AlgSequence.
