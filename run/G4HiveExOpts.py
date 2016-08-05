@@ -16,6 +16,10 @@ if (nThreads < 1) :
 msgFmt = "% F%38W%S%6W%e%s%7W%R%T %0W%M"
 svcMgr.MessageSvc.Format = msgFmt
 
+# Thread pool service
+from GaudiHive.GaudiHiveConf import ThreadPoolSvc
+svcMgr += ThreadPoolSvc("ThreadPoolSvc")
+
 # Algorithm resource pool
 from GaudiHive.GaudiHiveConf import AlgResourcePool
 svcMgr += AlgResourcePool( OutputLevel = INFO );
