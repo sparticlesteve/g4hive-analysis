@@ -1,3 +1,5 @@
 .ipynb_checkpoints/
+utils/__pycache__
 results*
 .DS_Store
+*.swp
