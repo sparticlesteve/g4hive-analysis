@@ -9,6 +9,7 @@ http://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.genfromtxt.html
 
 from __future__ import print_function
 import os
+import pickle
 import numpy as np
 
 class JobResult:
@@ -56,7 +57,17 @@ def parse_timeline(timeline):
     results.sort(order='starts')
     return results
 
-def parse_job_results(results_dir):
+def save_job_results(job_results, file_name):
+    """Serialize and write job results to directory with pickle"""
+    with open(file_name, 'wb') as f:
+        pickle.dump(job_results, f)
+
+def load_job_results(file_name):
+    """Load pickled job results"""
+    with open(file_name, 'rb') as f:
+        return pickle.load(file_name)
+
+def parse_job_results(results_dir, verbose=False):
     """
     Parse and prepare all measurements in a log directory.
 
@@ -66,6 +77,7 @@ def parse_job_results(results_dir):
 
     Arguments:
       results_dir is a path to a directory of log files.
+      verbose activates progress information printing.
 
     Returns:
       A list of JobResult objects sorted by nThread.
@@ -94,8 +106,9 @@ def parse_job_results(results_dir):
         j.start_time, j.end_time = parse_time_file(time_file)
         j.timeline_results = parse_timeline(time_file)
         job_results.append(j)
+        if verbose:
+            print('Processed %d thread %d proc %d event' % (nThread, nProc, nEvent))
 
     # Sort results by nThread
     job_results.sort(key=lambda j: j.nThread)
     return job_results
-
