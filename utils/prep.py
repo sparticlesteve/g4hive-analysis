@@ -65,7 +65,7 @@ def save_job_results(job_results, file_name):
 def load_job_results(file_name):
     """Load pickled job results"""
     with open(file_name, 'rb') as f:
-        return pickle.load(file_name)
+        return pickle.load(f)
 
 def parse_job_results(results_dir, verbose=False):
     """
