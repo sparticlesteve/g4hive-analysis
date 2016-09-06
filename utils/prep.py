@@ -59,6 +59,7 @@ def parse_timeline(timeline):
 
 def save_job_results(job_results, file_name):
     """Serialize and write job results to directory with pickle"""
+    print('saving results to', file_name)
     with open(file_name, 'wb') as f:
         pickle.dump(job_results, f)
 
