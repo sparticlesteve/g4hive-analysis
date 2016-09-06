@@ -27,9 +27,12 @@ def peek_file(filename):
 def parse_job_info(file_name):
     """
     Parses out basic job info from the file-name.
+    Assumes a naming convention like:
+        'directory/prefix.nThread_nProc_nEvent.suffix'
     Returns (nThread, nProc, nEvent)
     """
-    config_str = file_name.split('.')[1]
+    base_file_name = os.path.basename(file_name)
+    config_str = base_file_name.split('.')[1]
     nThread, nProc, nEvent = config_str.split('_')
     return int(nThread), int(nProc), int(nEvent)
 
