@@ -71,6 +71,25 @@ def load_job_results(file_name):
     with open(file_name, 'rb') as f:
         return pickle.load(f)
 
+def parse_job_result(mem_file, time_file):
+    """
+    Parse the measurements for one job.
+
+    Extracts the results from a memory monitoring file and a timeline log file
+    and returns one JobResult. A safety check ensures that the files correspond
+    to the same job configuration.
+
+    The job's start and end times, which were previous taken from the main
+    job log, are now available in the timeline file so I take them from there.
+    """
+    nThread, nProc, nEvent = parse_job_info(mem_file)
+    assert((nThread, nProc, nEvent) == parse_job_info(time_file))
+    j = JobResult(nThread, nProc, nEvent)
+    j.times_mems = parse_mem_file(mem_file)
+    j.start_time, j.end_time = parse_time_file(time_file)
+    j.timeline_results = parse_timeline(time_file)
+    return j
+
 def parse_job_results(results_dir, verbose=False):
     """
     Parse and prepare all measurements in a log directory.
@@ -101,17 +120,11 @@ def parse_job_results(results_dir, verbose=False):
     for mem_file, time_file in zip(mem_files, time_files):
         mem_file = os.path.join(results_dir, mem_file)
         time_file = os.path.join(results_dir, time_file)
-        nThread, nProc, nEvent = parse_job_info(mem_file)
-        # I'm assuming both are sorted the same, but verify it here
-        assert((nThread, nProc, nEvent) == parse_job_info(time_file))
-        j = JobResult(nThread, nProc, nEvent)
-        j.times_mems = parse_mem_file(mem_file)
-        # Currently, I'm dumping the start/end times into the timeline file
-        j.start_time, j.end_time = parse_time_file(time_file)
-        j.timeline_results = parse_timeline(time_file)
-        job_results.append(j)
+        job = parse_job_result(mem_file, time_file)
+        job_results.append(job)
         if verbose:
-            print('Processed %d thread %d proc %d event' % (nThread, nProc, nEvent))
+            print('Processed %d thread %d proc %d event' %
+                    (job.nThread, job.nProc, job.nEvent))
 
     # Sort results by nThread
     job_results.sort(key=lambda j: j.nThread)
