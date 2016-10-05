@@ -31,6 +31,7 @@ def get_avg_thread_time(job):
     time = 0
     for tid in unique_tids:
         thread_ends = ends[tids == tid]
+        # Within a thread, results are chronological, so take the last
         thread_end = thread_ends[-1]
         time += (thread_end - start)*1e-9
     return time / job.nThread
